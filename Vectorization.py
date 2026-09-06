@@ -300,8 +300,6 @@ def betti_fun(persistence_diagram, dimension, pat_id, lead, N): # This is to get
         j = len(betti_vec)
         last_val = betti_vec[j-1]
         output = []
-        output.append(betti_vec[0])
-        output.append(betti_vec[1])
         i = 2
         while i < len(betti_vec):
             output.append(betti_vec[i]) #You add 1 for the one connected component you have at the end of the persistent homology.
@@ -354,8 +352,6 @@ The outputs of this file are the vectorizations of each of the persistence diagr
 Rns = ['R2', 'R3', 'R4'] # If you have a specific R_n that you are interested in, specify that here.
 Vectorizations = ['Betti_Vectorization', 'Pers_Vec_Vectorization', 'Pers_Vec_Vectorization_nooverlap', 'Pers_Vec_Vectorization_nocount', 'Pers_Vec_Vectorization_nocount_nooverlap', 'Pers_Vec_Vectorization_noarea']
 ending_leads = ['_all', '_V1', '_V2', '_V3', '_V1_V2', '_V1_V3', '_V2_V3']
-lead_s = ['V1', 'V2', 'V3']
-
 
 get_to_files = Path('./Brugada_dataset/files')
 all_folder_names = []
@@ -422,6 +418,8 @@ while c < len(Vectorizations):
                                 x = np.searchsorted(ann[:,0], float(pat_id))
 
                                 value = ann[x,1]
+
+                                lead_s = ['V1', 'V2', 'V3']
 
                                 j = 0
                                 while j < len(lead_s):
@@ -708,6 +706,8 @@ while c < len(Vectorizations):
                             x = np.searchsorted(ann[:,0], float(pat_id))
 
                             value = ann[x,1]
+
+                            lead_s = ['V1', 'V2', 'V3']
 
                             j = 0
                             while j < len(lead_s):
@@ -1005,6 +1005,8 @@ while c < len(Vectorizations):
 
                             value = ann[x,1]
 
+                            lead_s = ['V1', 'V2', 'V3']
+
                             j = 0
                             while j < len(lead_s):
                                 lead = lead_s[j]
@@ -1300,6 +1302,8 @@ while c < len(Vectorizations):
                             x = np.searchsorted(ann[:,0], float(pat_id))
 
                             value = ann[x,1]
+
+                            lead_s = ['V1', 'V2', 'V3']
 
                             j = 0
                             while j < len(lead_s):
@@ -1597,6 +1601,8 @@ while c < len(Vectorizations):
 
                             value = ann[x,1]
 
+                            lead_s = ['V1', 'V2', 'V3']
+
                             j = 0
                             while j < len(lead_s):
                                 lead = lead_s[j]
@@ -1892,6 +1898,8 @@ while c < len(Vectorizations):
                             x = np.searchsorted(ann[:,0], float(pat_id))
 
                             value = ann[x,1]
+
+                            lead_s = ['V1', 'V2', 'V3']
 
                             j = 0
                             while j < len(lead_s):

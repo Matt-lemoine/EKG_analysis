@@ -1,8 +1,11 @@
 from sklearn.metrics import accuracy_score, confusion_matrix
-import xgboost as xgb
-from sklearn.model_selection import train_test_split
-
 from sklearn.model_selection import KFold, cross_val_score
+from sklearn.model_selection import StratifiedKFold
+
+from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,16 +25,16 @@ The output of this file is the accuracy for each of the vectorizations trained u
 
 
 
-def do_xgboost(X, y, max_depth, learning_rate, num, test_size):
+def do_xgboost(X, y, max_depth, learning_rate, num, test_size): 
 
-    model = xgb.XGBClassifier(objective='binary:logistic', random_state=42)
+    model = XGBClassifier(objective='binary:logistic', random_state=42)
 
-    scores = cross_val_score(model, X, y, cv=5, verbose=2)
+    auc_scores = cross_val_score(model, X, y, cv=5, scoring='roc_auc') # This does the StratifiedKfold cross validation.
 
-    return scores.mean()
+    return auc_scores
 
 
-Rns = ['R2_w7', 'R3_w7', 'R4_w7'] # If you have a specific R_n that you are interested in, specify that here.
+Rns = ['R2', 'R3', 'R4'] # If you have a specific R_n that you are interested in, specify that here.
 
 Vectorizations = ['Betti_Vectorization', 'Pers_Vec_Vectorization', 'Pers_Vec_Vectorization_nooverlap', 'Pers_Vec_Vectorization_nocount', 'Pers_Vec_Vectorization_nocount_nooverlap', 'Pers_Vec_Vectorization_noarea']
 
@@ -41,8 +44,11 @@ Ns = [1, 5, 10, 100]
 
 # XGBoost parameters
 max_depth = [3,4,5]
+max_depth = [3]
 learning_rate = [0.1, 0.25, 0.5]
+learning_rate = [0.1]
 num = [50, 75, 100]
+num = [50]
 test_size = 0.20
 
 mx_dth = 0
@@ -61,6 +67,7 @@ while mx_dth < len(max_depth):
             num_trees = num[number]
 
             All_info_to_be_written = []
+            AUC_totals = []
 
             r = 0
             while r < len(Rns):
@@ -79,96 +86,52 @@ while mx_dth < len(max_depth):
                             while i < len(Ns):
                                 n = Ns[i]
 
-                                current_vec_title = Vec_title + suffix_lead + '_' + str(n)
-                                current_vec = current_vec_title + '.csv'
+                                csv_name = Vec_title + suffix_lead + '_' + str(n) + '_' + str(R_n) + '.csv'
 
-                                csv_name = current_vec
-                                file = f'Vectorization_{R_n}_off1/{csv_name}'
+                                file = f'Vectorizations_9_1_26/{csv_name}'
 
                                 print(file)
 
-                                max_col = 2*n
-
                                 dataset = pd.read_csv(file, header = None)
-                                dataset = dataset.drop(dataset.columns[[0,1]], axis = 1)
+                                dataset = dataset.drop(dataset.columns[[0]], axis = 1)
+                                max_col = dataset.shape[1]-1
                                 X = dataset.iloc[:, 0:max_col]
                                 y = dataset.iloc[:, max_col].values
 
-                                avg_accuracy = do_xgboost(X, y, max_d, learning_r, num_trees, test_size)
-                                
-                                print(f'Average accuracy over 5 random_states for {file} with N = {n} is: {avg_accuracy}')
+                                auc_scores = do_xgboost(X, y, max_d, learning_r, num_trees, test_size)
+                                mean_auc_score = auc_scores.mean()
+                                std_auc_score = auc_scores.std()
 
-                                All_info_to_be_written.append([current_vec_title, R_n, avg_accuracy])
+                                print(f'Average AUC over 5 fold cross validation for {file} with N = {n} is: {mean_auc_score}')
+
+                                All_info_to_be_written.append([Vec_title + suffix_lead, R_n, mean_auc_score, std_auc_score])
+                                AUC_totals.append([Vec_title + suffix_lead, auc_scores])
 
                                 i = i+1
 
-                        elif Vec_title == 'Pers_Vec_Vectorization' or Vec_title == 'Pers_Vec_Vectorization_nooverlap':
+                        else:
                             
-                            current_vec_title = Vec_title + suffix_lead
-                            current_vec = current_vec_title + '.csv'
+                            csv_name = Vec_title + suffix_lead  + '_' + str(R_n) + '.csv'
 
-                            csv_name = current_vec
-                            file = f'Vectorization_{R_n}/{csv_name}'
+                            file = f'Vectorizations_9_1_26/{csv_name}'
 
                             print(file)
 
-                            col_names = ['Total 1 area', 'Total 1 Count', 'Total 0 area', 'Total 0 Count', 'Value']
+                            dataset = pd.read_csv(file, header = 0)
+                            dataset = dataset.drop(dataset.columns[[0]], axis = 1)
+                            max_col = dataset.shape[1]-1
+                            X = dataset.iloc[:, 0:max_col]
+                            y = dataset.iloc[:, max_col].values
 
-                            dataset = pd.read_csv(file)
-                            dataset = dataset[col_names]
-                            X = dataset.iloc[:, 0:4]
-                            y = dataset.iloc[:, 4].values
+                            auc_scores = do_xgboost(X, y, max_d, learning_r, num_trees, test_size)
+                            mean_auc_score = auc_scores.mean()
+                            std_auc_score = auc_scores.std()
 
-                            avg_accuracy = do_xgboost(X, y, max_d, learning_r, num_trees, test_size)
+                            print(f'Average AUC over 5 fold cross validation for {file} is: {mean_auc_score}')
 
-                            print(f'Average accuracy over 5 random_states for {file} is: {avg_accuracy}')
+                            All_info_to_be_written.append([Vec_title + suffix_lead, R_n, mean_auc_score, std_auc_score])
+                            AUC_totals.append([Vec_title + suffix_lead, auc_scores])
 
-                            All_info_to_be_written.append([current_vec_title, R_n, avg_accuracy])
-
-                        elif Vec_title == 'Pers_Vec_Vectorization_nocount' or Vec_title =='Pers_Vec_Vectorization_nocount_nooverlap':
-
-                            current_vec_title = Vec_title + suffix_lead
-                            current_vec = current_vec_title + '.csv'
-
-                            csv_name = current_vec
-                            file = f'Vectorization_{R_n}/{csv_name}'
-
-                            print(file)
-
-                            col_names = ['Total 1 area', 'Total 0 area', 'Value']
-
-                            dataset = pd.read_csv(file)
-                            dataset = dataset[col_names]
-                            X = dataset.iloc[:, 0:2] 
-                            y = dataset.iloc[:, 2].values
-
-                            avg_accuracy = do_xgboost(X, y, max_d, learning_r, num_trees, test_size)
-
-                            print(f'Average accuracy over 5 random_states for {file} is: {avg_accuracy}')
-
-                            All_info_to_be_written.append([current_vec_title, R_n, avg_accuracy])
-
-                        elif Vec_title == 'Pers_Vec_Vectorization_noarea':
-
-                            current_vec_title = Vec_title + suffix_lead
-                            current_vec = current_vec_title + '.csv'
-
-                            csv_name = current_vec
-                            file = f'Vectorization_{R_n}/{csv_name}'
-
-                            print(file)
-
-                            col_names = ['Total 0 Count', 'Total 1 Count', 'Value']
-                            dataset = pd.read_csv(file)
-                            dataset = dataset[col_names]
-                            X = dataset.iloc[:, 0:2] 
-                            y = dataset.iloc[:, 2].values
-
-                            avg_accuracy = do_xgboost(X, y, max_d, learning_r, num_trees, test_size)
-
-                            print(f'Average accuracy over 5 random_states for {file} is: {avg_accuracy}')
-
-                            All_info_to_be_written.append([current_vec_title, R_n, avg_accuracy])
 
                         el = el+1
                     
@@ -178,14 +141,28 @@ while mx_dth < len(max_depth):
 
             All_info_to_be_written = np.array(All_info_to_be_written)
 
-            output_csv_file = f"XGBoost_CSV_Results_final/All_Results_XGBoost_w7_num_{num_trees}_lr_{learning_r}_md_{max_d}.csv"
+            output_csv_file = f"All_Results_XGBoost_num_{num_trees}_lr_{learning_r}_md_{max_d}.csv"
             with open(output_csv_file, "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(["Vectorization_Method_and_lead", "R_n", "Accuracy"])
+                writer.writerow(["Vectorization_Method_and_lead", "R_n", "mean_AUC", "std_AUC"])
 
                 i = 0
                 while i < len(All_info_to_be_written):
                     row = All_info_to_be_written[i]
+                    writer.writerow(row)
+                    i = i+1
+
+
+            AUC_totals = np.array(AUC_totals)
+
+            output_csv_file = f"AUC_totals_num_{num_trees}_lr_{learning_r}_md_{max_d}.csv"
+            with open(output_csv_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Vectorization_Method_and_lead", "AUC"])
+
+                i = 0
+                while i < len(AUC_totals):
+                    row = AUC_totals[i]
                     writer.writerow(row)
                     i = i+1
 
